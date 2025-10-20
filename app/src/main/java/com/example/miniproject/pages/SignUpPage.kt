@@ -19,19 +19,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.miniproject.R
-import com.google.firebase.auth.FirebaseAuth
 import com.example.miniproject.AuthViewModel
 
 @Composable
-fun SignupPage(navController: NavController) {
-    val auth = FirebaseAuth.getInstance()
+fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Background gradient
+
+    val errorMessage by authViewModel.errorMessage
+    val isLoading by authViewModel.loading
+
+
     val gradientBackground = Brush.verticalGradient(
         listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
     )
@@ -71,7 +72,8 @@ fun SignupPage(navController: NavController) {
                     onValueChange = { email = it },
                     label = { Text("Email") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -82,7 +84,8 @@ fun SignupPage(navController: NavController) {
                     label = { Text("Password") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation()
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -93,7 +96,8 @@ fun SignupPage(navController: NavController) {
                     label = { Text("Confirm Password") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation()
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -101,21 +105,18 @@ fun SignupPage(navController: NavController) {
 
                 Button(
                     onClick = {
-                        errorMessage = null
+                        authViewModel.errorMessage.value = null // Clear previous error
                         if (password != confirmPassword) {
-                            errorMessage = "Passwords do not match"
+                            authViewModel.errorMessage.value = "Passwords do not match"
                         } else if (email.isNotEmpty() && password.isNotEmpty()) {
-                            auth.createUserWithEmailAndPassword(email, password)
-                                .addOnSuccessListener {
-                                    navController.navigate("homepage") {
-                                        popUpTo("signup") { inclusive = true }
-                                    }
+                            // Use ViewModel to sign up
+                            authViewModel.signup(email, password) {
+                                navController.navigate("homepage") {
+                                    popUpTo("signup") { inclusive = true }
                                 }
-                                .addOnFailureListener {
-                                    errorMessage = it.message
-                                }
+                            }
                         } else {
-                            errorMessage = "Please fill all fields"
+                            authViewModel.errorMessage.value = "Please fill all fields"
                         }
                     },
                     modifier = Modifier
@@ -124,7 +125,8 @@ fun SignupPage(navController: NavController) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent
                     ),
-                    contentPadding = PaddingValues()
+                    contentPadding = PaddingValues(),
+                    enabled = !isLoading
                 ) {
                     Box(
                         modifier = Modifier
@@ -137,16 +139,25 @@ fun SignupPage(navController: NavController) {
                             .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "SIGN UP",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "SIGN UP",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
+
 
                 errorMessage?.let {
                     Text(text = it, color = Color.Red, fontSize = 14.sp)
@@ -175,6 +186,7 @@ fun SignupPage(navController: NavController) {
                     fontWeight = FontWeight.Bold,
                     color = Color.Black,
                     modifier = Modifier.clickable {
+                        authViewModel.errorMessage.value = null // Clear error
                         navController.navigate("login") {
                             popUpTo("signup") { inclusive = true }
                         }
@@ -184,6 +196,7 @@ fun SignupPage(navController: NavController) {
         }
     }
 }
+
 
 @Composable
 fun SocialIcon(icon: Int) {

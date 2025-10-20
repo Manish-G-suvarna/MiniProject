@@ -11,12 +11,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.google.firebase.auth.FirebaseAuth
+import com.example.miniproject.AuthViewModel
 
 @Composable
-fun HomePage(navController: NavController) {
-    val auth = FirebaseAuth.getInstance()
-    val user = auth.currentUser
+fun HomePage(navController: NavController, authViewModel: AuthViewModel) {
+
+
+    val user = authViewModel.currentUser.value
 
     Box(
         modifier = Modifier
@@ -36,7 +37,8 @@ fun HomePage(navController: NavController) {
 
             Button(
                 onClick = {
-                    auth.signOut()
+
+                    authViewModel.signOut()
                     navController.navigate("login") {
                         popUpTo("homepage") { inclusive = true }
                     }

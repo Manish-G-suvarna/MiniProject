@@ -19,17 +19,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.miniproject.R
-import com.google.firebase.auth.FirebaseAuth
+import com.example.miniproject.AuthViewModel
 
 @Composable
-fun LoginPage(navController: NavController) {
-    val auth = FirebaseAuth.getInstance()
+fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Background gradient
+
+    val errorMessage by authViewModel.errorMessage
+    val isLoading by authViewModel.loading
+
+
     val gradientBackground = Brush.verticalGradient(
         listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
     )
@@ -69,7 +71,8 @@ fun LoginPage(navController: NavController) {
                     onValueChange = { email = it },
                     label = { Text("Username") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading // Disable when loading
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -80,7 +83,8 @@ fun LoginPage(navController: NavController) {
                     label = { Text("Password") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation()
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isLoading // Disable when loading
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -97,17 +101,16 @@ fun LoginPage(navController: NavController) {
                 Button(
                     onClick = {
                         if (email.isNotEmpty() && password.isNotEmpty()) {
-                            auth.signInWithEmailAndPassword(email, password)
-                                .addOnSuccessListener {
-                                    navController.navigate("homepage") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
+                            // Call the ViewModel's login function
+                            authViewModel.login(email, password) {
+                                // OnSuccess, navigate to homepage
+                                navController.navigate("homepage") {
+                                    popUpTo("login") { inclusive = true }
                                 }
-                                .addOnFailureListener {
-                                    errorMessage = it.message
-                                }
+                            }
                         } else {
-                            errorMessage = "Please enter email and password"
+
+                            authViewModel.errorMessage.value = "Please enter email and password"
                         }
                     },
                     modifier = Modifier
@@ -116,7 +119,8 @@ fun LoginPage(navController: NavController) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent
                     ),
-                    contentPadding = PaddingValues()
+                    contentPadding = PaddingValues(),
+                    enabled = !isLoading
                 ) {
                     Box(
                         modifier = Modifier
@@ -129,17 +133,26 @@ fun LoginPage(navController: NavController) {
                             .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "LOGIN",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "LOGIN",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
+                // Display error message from the ViewModel
                 errorMessage?.let {
                     Text(text = it, color = Color.Red, fontSize = 14.sp)
                 }
@@ -167,6 +180,8 @@ fun LoginPage(navController: NavController) {
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray,
                     modifier = Modifier.clickable {
+
+                        authViewModel.errorMessage.value = null
                         navController.navigate("signup")
                     }
                 )
