@@ -1,6 +1,9 @@
 package com.example.miniproject.pages
 
-import android.app.Application
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,13 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,6 +32,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.miniproject.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +40,7 @@ import com.example.miniproject.AuthViewModel
 fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
     val bottomNavController = rememberNavController()
     val user by authViewModel.currentUser
+    val profileImageBase64 by authViewModel.profileImage
 
     val glassGradient = Brush.verticalGradient(
         listOf(
@@ -130,13 +136,8 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
         ) {
             composable("home_tab") {
                 HomeScreenContent(
-                    userEmail = user?.email ?: "User",
-                    onLogout = {
-                        authViewModel.signOut()
-                        mainNavController.navigate("login") {
-                            popUpTo("homepage") { inclusive = true }
-                        }
-                    }
+                    userName = user?.displayName ?: "User",
+                    profileImageBase64 = profileImageBase64
                 )
             }
             composable("explore_tab") {
@@ -149,7 +150,7 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
 //                ShopScreen()
             }
             composable("profile_tab") {
-//                ProfileScreen()
+                ProfileScreen(navController = mainNavController, authViewModel = authViewModel)
             }
         }
     }
@@ -200,20 +201,31 @@ fun RowScope.BottomNavItem(
     }
 }
 
-// --- THIS IS THE UPDATED COMPOSABLE ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreenContent(userEmail: String, onLogout: () -> Unit) {
+fun HomeScreenContent(userName: String, profileImageBase64: String?) {
 
-    // Gradient matching login/signup page
     val topBarGradient = Brush.verticalGradient(
         listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
     )
+    
+    val imageBitmap = remember(profileImageBase64) {
+        if (profileImageBase64 != null) {
+            try {
+                val imageBytes = Base64.decode(profileImageBase64, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F7FB)) // Default light background for content area
+            .background(Color(0xFFF6F7FB))
     ) {
         // --- Top Bar Area ---
         Box(
@@ -229,29 +241,39 @@ fun HomeScreenContent(userEmail: String, onLogout: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Profile Image
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "Profile Image",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color.White, CircleShape)
-                    )
+                    if (imageBitmap != null) {
+                        Image(
+                            bitmap = imageBitmap,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, Color.White, CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Profile Image",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, Color.White, CircleShape)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    // Profile Name
                     Text(
-                        text = userEmail, // Using email as profile name
+                        text = userName,
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
 
-
-                    IconButton(onClick = {  }) {
+                    IconButton(onClick = { /* Handle notification click */ }) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Notifications",
@@ -262,12 +284,12 @@ fun HomeScreenContent(userEmail: String, onLogout: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-
+                // --- Second Row: Search and Filter ---
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
+                    // Search Bar
                     OutlinedTextField(
                         value = "",
                         onValueChange = {},
@@ -295,7 +317,6 @@ fun HomeScreenContent(userEmail: String, onLogout: () -> Unit) {
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    // Filter Icon
                     IconButton(onClick = {  }) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
@@ -306,35 +327,8 @@ fun HomeScreenContent(userEmail: String, onLogout: () -> Unit) {
                 }
             }
         }
-
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Welcome!",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A)
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = onLogout,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0072FF))
-                ) {
-                    Text(text = "Logout", color = Color.White)
-                }
-            }
-        }
     }
 }
-
 
 
 @Preview(showBackground = true)

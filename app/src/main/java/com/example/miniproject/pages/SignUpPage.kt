@@ -3,7 +3,7 @@ package com.example.miniproject.pages
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.* // ktlint-disable no-wildcard-imports
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,20 +18,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.miniproject.R
 import com.example.miniproject.AuthViewModel
+import com.example.miniproject.R
 
 @Composable
 fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
-
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-
     val errorMessage by authViewModel.errorMessage
     val isLoading by authViewModel.loading
-
 
     val gradientBackground = Brush.verticalGradient(
         listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
@@ -68,6 +66,17 @@ fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
@@ -102,15 +111,13 @@ fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-
                 Button(
                     onClick = {
                         authViewModel.errorMessage.value = null // Clear previous error
                         if (password != confirmPassword) {
                             authViewModel.errorMessage.value = "Passwords do not match"
-                        } else if (email.isNotEmpty() && password.isNotEmpty()) {
-                            // Use ViewModel to sign up
-                            authViewModel.signup(email, password) {
+                        } else if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                            authViewModel.signup(username, email, password) {
                                 navController.navigate("homepage") {
                                     popUpTo("signup") { inclusive = true }
                                 }
@@ -158,7 +165,6 @@ fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-
                 errorMessage?.let {
                     Text(text = it, color = Color.Red, fontSize = 14.sp)
                 }
@@ -175,7 +181,6 @@ fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     SocialIcon(R.drawable.facebook)
-                    SocialIcon(R.drawable.twitter)
                     SocialIcon(R.drawable.google)
                 }
 
@@ -196,7 +201,6 @@ fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
         }
     }
 }
-
 
 @Composable
 fun SocialIcon(icon: Int) {

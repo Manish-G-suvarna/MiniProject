@@ -69,7 +69,7 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Username") },
+                    label = { Text("Username OR Email") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLoading // Disable when loading
@@ -169,7 +169,6 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     SocialIcon(R.drawable.facebook)
-                    SocialIcon(R.drawable.twitter)
                     SocialIcon(R.drawable.google)
                 }
 
