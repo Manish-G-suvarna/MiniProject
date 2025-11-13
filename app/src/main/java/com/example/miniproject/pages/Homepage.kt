@@ -1,25 +1,64 @@
 package com.example.miniproject.pages
 
-import android.graphics.BitmapFactory
-import android.net.Uri
-import android.util.Base64
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.random.Random
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -28,48 +67,92 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import coil.compose.rememberAsyncImagePainter
 import com.example.miniproject.AuthViewModel
+import com.example.miniproject.pages.ProfileScreen
+
+// --- Weather Data and ViewModel ---
+data class HourlyWeather(val time: String, val icon: ImageVector, val temperature: Int, val isSunset: Boolean = false)
+data class DailyWeather(val day: String, val icon: ImageVector, val precipChance: Int, val lowTemp: Int, val highTemp: Int)
+
+class WeatherViewModel : ViewModel() {
+    val location = mutableStateOf("Dakshina Kannada")
+    val currentTemperature = mutableStateOf(30)
+    val weatherCondition = mutableStateOf("Partly Cloudy")
+    val isDay = mutableStateOf(true)
+    val highTemp = mutableStateOf(32)
+    val lowTemp = mutableStateOf(24)
+
+    private fun getWeatherIcon(condition: String, isDayTime: Boolean): ImageVector {
+        return when {
+            condition.contains("Cloudy") -> Icons.Default.Cloud
+            isDayTime -> Icons.Default.WbSunny
+            else -> Icons.Default.NightsStay
+        }
+    }
+
+    val hourlyForecasts = mutableStateListOf(
+        HourlyWeather("Now", getWeatherIcon("Partly Cloudy", true), 30),
+        HourlyWeather("4PM", Icons.Default.WbSunny, 29),
+        HourlyWeather("5PM", Icons.Default.Cloud, 28),
+        HourlyWeather("6PM", Icons.Default.WbSunny, 27),
+        HourlyWeather("6:01PM", Icons.Default.WbSunny, 0, isSunset = true),
+        HourlyWeather("7PM", Icons.Default.NightsStay, 27),
+        HourlyWeather("8PM", Icons.Default.NightsStay, 26)
+    )
+
+    val dailyForecasts = listOf(
+        DailyWeather("Today", Icons.Default.Cloud, 45, 24, 32),
+        DailyWeather("Fri", Icons.Default.Cloud, 60, 23, 32),
+        DailyWeather("Sat", Icons.Default.WbSunny, 0, 23, 32),
+        DailyWeather("Sun", Icons.Default.WbSunny, 0, 21, 32),
+        DailyWeather("Mon", Icons.Default.Cloud, 0, 22, 32)
+    )
+
+    init {
+        viewModelScope.launch {
+            while (true) {
+                delay(10000) // Update every 10 seconds
+
+                // Toggle day/night
+                isDay.value = !isDay.value
+
+                // Toggle weather condition
+                val newCondition = if (Random.nextBoolean()) "Partly Cloudy" else "Sunny"
+                weatherCondition.value = newCondition
+
+                // Update temperature
+                val tempChange = Random.nextInt(-1, 2)
+                currentTemperature.value += tempChange
+
+                // Update the "Now" forecast in the hourly list
+                hourlyForecasts[0] = hourlyForecasts[0].copy(
+                    temperature = currentTemperature.value,
+                    icon = getWeatherIcon(newCondition, isDay.value)
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
     val bottomNavController = rememberNavController()
-    val user by authViewModel.currentUser
-    val profileImageBase64 by authViewModel.profileImage
-
-    val glassGradient = Brush.verticalGradient(
-        listOf(
-            Color(0x33A6E3E9), // Lightest teal with opacity
-            Color(0x331ABC9C)  // Darker teal with opacity
-        )
-    )
-
-    val selectedGlassGradient = Brush.verticalGradient(
-        listOf(
-            Color(0x66A6E3E9),
-            Color(0x661ABC9C)
-        )
-    )
 
     Scaffold(
         bottomBar = {
             BottomAppBar(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
-                        )
-                    )
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                containerColor = Color.Transparent
+                    .height(70.dp)
+                    .shadow(12.dp),
+                containerColor = Color.White,
+                contentColor = Color.Black,
+                tonalElevation = 0.dp
             ) {
                 val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
@@ -79,52 +162,9 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    BottomNavItem(
-                        icon = Icons.Default.Home,
-                        label = "Home",
-                        route = "home_tab",
-                        currentRoute = currentRoute,
-                        navController = bottomNavController,
-                        gradient = glassGradient,
-                        selectedGradient = selectedGlassGradient
-                    )
-                    BottomNavItem(
-                        icon = Icons.Default.Search,
-                        label = "Explore",
-                        route = "explore_tab",
-                        currentRoute = currentRoute,
-                        navController = bottomNavController,
-                        gradient = glassGradient,
-                        selectedGradient = selectedGlassGradient
-                    )
-                    BottomNavItem(
-                        icon = Icons.Default.CameraAlt,
-                        label = "Detect",
-                        route = "detect_tab",
-                        currentRoute = currentRoute,
-                        navController = bottomNavController,
-                        gradient = glassGradient,
-                        selectedGradient = selectedGlassGradient,
-                        isCentral = true
-                    )
-                    BottomNavItem(
-                        icon = Icons.Default.ShoppingCart,
-                        label = "Shop",
-                        route = "shop_tab",
-                        currentRoute = currentRoute,
-                        navController = bottomNavController,
-                        gradient = glassGradient,
-                        selectedGradient = selectedGlassGradient
-                    )
-                    BottomNavItem(
-                        icon = Icons.Default.Person,
-                        label = "Profile",
-                        route = "profile_tab",
-                        currentRoute = currentRoute,
-                        navController = bottomNavController,
-                        gradient = glassGradient,
-                        selectedGradient = selectedGlassGradient
-                    )
+                    BottomNavItem(Icons.Filled.Home, Icons.Outlined.Home, "Home", "home_tab", currentRoute, bottomNavController)
+                    BottomNavItem(Icons.Filled.CameraAlt, Icons.Outlined.CameraAlt, "Detect", "detect_tab",  currentRoute, bottomNavController)
+                    BottomNavItem(Icons.Filled.Person, Icons.Outlined.Person, "Profile", "profile_tab", currentRoute, bottomNavController)
                 }
             }
         }
@@ -134,21 +174,8 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
             startDestination = "home_tab",
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable("home_tab") {
-                HomeScreenContent(
-                    userName = user?.displayName ?: "User",
-                    profileImageBase64 = profileImageBase64
-                )
-            }
-            composable("explore_tab") {
-//                ExploreScreen()
-            }
-            composable("detect_tab") {
-//                QuickDetectScreen()
-            }
-            composable("shop_tab") {
-//                ShopScreen()
-            }
+            composable("home_tab") { HomeScreenContent(weatherViewModel = viewModel()) }
+            composable("detect_tab") { /* Detect Screen */ }
             composable("profile_tab") {
                 ProfileScreen(navController = mainNavController, authViewModel = authViewModel)
             }
@@ -158,174 +185,188 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
 
 @Composable
 fun RowScope.BottomNavItem(
-    icon: ImageVector,
+    selectedIcon: ImageVector,
+    unselectedIcon: ImageVector,
     label: String,
     route: String,
     currentRoute: String?,
-    navController: NavController,
-    gradient: Brush,
-    selectedGradient: Brush,
-    isCentral: Boolean = false
+    navController: NavController
 ) {
     val selected = currentRoute == route
-    val containerColor = if (selected) selectedGradient else gradient
-    val contentColor = if (selected) Color.White else Color.Black.copy(alpha = 0.7f)
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1.1f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+    )
 
     Column(
         modifier = Modifier
             .weight(1f)
-            .clickable {
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                 navController.navigate(route) {
-                    popUpTo(navController.graph.startDestinationId)
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
                     launchSingleTop = true
+                    restoreState = true
                 }
-            }
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .clip(CircleShape)
-            .background(containerColor),
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(24.dp)
-        )
-        Text(
-            text = label,
-            fontSize = 10.sp,
-            color = contentColor,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-        )
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .background(
+                    color = if (selected) Color(0xFFFADADD) else Color.Transparent,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (selected) selectedIcon else unselectedIcon,
+                contentDescription = label,
+                tint = Color.Black,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreenContent(userName: String, profileImageBase64: String?) {
+fun HomeScreenContent(weatherViewModel: WeatherViewModel = viewModel()) {
+    val isDay = weatherViewModel.isDay.value
+    val weatherCondition = weatherViewModel.weatherCondition.value
 
-    val topBarGradient = Brush.verticalGradient(
-        listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
-    )
-    
-    val imageBitmap = remember(profileImageBase64) {
-        if (profileImageBase64 != null) {
-            try {
-                val imageBytes = Base64.decode(profileImageBase64, Base64.DEFAULT)
-                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
-        }
+    val mainWeatherIcon = when {
+        weatherCondition.contains("Cloudy") -> Icons.Default.Cloud
+        isDay -> Icons.Default.WbSunny
+        else -> Icons.Default.NightsStay
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F7FB))
+            .background(
+                Brush.verticalGradient(
+                    colors = if (isDay) listOf(Color(0xFF6EACE0), Color(0xFF8EC5F0)) else listOf(Color(0xFF001428), Color(0xFF003366))
+                )
+            )
     ) {
-        // --- Top Bar Area ---
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(topBarGradient)
-                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 60.dp, bottom = 80.dp), // Padding for status bar and navigation bar
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column {
-                // --- First Row: Profile and Notification ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Profile Image
-                    if (imageBitmap != null) {
-                        Image(
-                            bitmap = imageBitmap,
-                            contentDescription = "Profile Picture",
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, Color.White, CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Profile Image",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .border(2.dp, Color.White, CircleShape)
-                        )
-                    }
+            // Main Weather Info
+            Text(weatherViewModel.location.value, color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Light)
+            Spacer(modifier = Modifier.height(16.dp))
+            Icon(mainWeatherIcon, contentDescription = null, tint = Color.White, modifier = Modifier.size(80.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("${weatherViewModel.currentTemperature.value}°", color = Color.White, fontSize = 100.sp, fontWeight = FontWeight.Thin)
+            Text(weatherCondition, color = Color.White, fontSize = 20.sp)
+            Text("H:${weatherViewModel.highTemp.value}° L:${weatherViewModel.lowTemp.value}°", color = Color.White, fontSize = 20.sp)
 
-                    Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Hourly Forecast Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = userName,
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
+                        "Cloudy conditions expected around 5PM. Wind gusts are up to 23 kph.",
+                        color = Color.White
                     )
-
-                    IconButton(onClick = { /* Handle notification click */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                            tint = Color.White
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // --- Second Row: Search and Filter ---
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Search Bar
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        placeholder = { Text("Search", color = Color.Gray) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search Icon",
-                                tint = Color.Gray
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp)
-                            .background(Color.White, RoundedCornerShape(25.dp)),
-                        shape = RoundedCornerShape(25.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            cursorColor = Color(0xFF1ABC9C)
-                        ),
-                        singleLine = true,
-                        maxLines = 1
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    IconButton(onClick = {  }) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = "Filter Options",
-                            tint = Color.White
-                        )
+                    Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.5f))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        items(weatherViewModel.hourlyForecasts) { forecast ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(forecast.time, color = Color.White, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                if (forecast.isSunset) {
+                                    Icon(forecast.icon, contentDescription = "Sunset", tint = Color.White)
+                                    Text("Sunset", color = Color.White)
+                                } else {
+                                    Icon(forecast.icon, contentDescription = "Weather Icon", tint = Color.White, modifier = Modifier.size(28.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("${forecast.temperature}°", color = Color.White, fontSize = 20.sp)
+                                }
+                            }
+                        }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 10-Day Forecast Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("10-DAY FORECAST", color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    weatherViewModel.dailyForecasts.forEach { forecast ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(forecast.day, color = Color.White, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+                            Icon(forecast.icon, contentDescription = null, tint = Color.White, modifier = Modifier.weight(1f))
+                            Text("${forecast.lowTemp}°", color = Color.White.copy(alpha = 0.7f))
+                            TemperatureRangeBar(low = forecast.lowTemp, high = forecast.highTemp, modifier = Modifier.weight(2f).padding(horizontal = 8.dp))
+                            Text("${forecast.highTemp}°")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TemperatureRangeBar(low: Int, high: Int, modifier: Modifier = Modifier) {
+    val totalRange = 40 // Assume a fixed total temperature range for visualization
+    val lowPercentage = low / totalRange.toFloat()
+    val highPercentage = (high - low) / totalRange.toFloat()
+
+    BoxWithConstraints(modifier = modifier.height(4.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Gray.copy(alpha = 0.5f), shape = CircleShape)
+        ) {
+            Box(
+                modifier = Modifier
+                    .height(4.dp)
+                    .width(maxWidth * highPercentage)
+                    .padding(start = maxWidth * lowPercentage)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(Color(0xFFF39C12), Color(0xFFF1C40F))
+                        ),
+                        shape = CircleShape
+                    )
+            )
         }
     }
 }
@@ -335,7 +376,5 @@ fun HomeScreenContent(userName: String, profileImageBase64: String?) {
 @Composable
 fun PreviewHomePage() {
     val dummyNavController = rememberNavController()
-    val authViewModel: AuthViewModel = viewModel()
-
-    HomePage(mainNavController = dummyNavController, authViewModel = authViewModel)
+    HomePage(mainNavController = dummyNavController, authViewModel = viewModel())
 }

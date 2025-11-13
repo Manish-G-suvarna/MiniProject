@@ -1,8 +1,6 @@
 package com.example.miniproject.pages
 
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -27,19 +25,14 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -55,8 +48,9 @@ import com.example.miniproject.AuthViewModel
 @Composable
 fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
     val user by authViewModel.currentUser
-    val profileImageBase64 by authViewModel.profileImage
+    val localProfileImageUri by authViewModel.localProfileImageUri
     var showEditDialog by remember { mutableStateOf(false) }
+    var showHelpDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     if (showEditDialog) {
@@ -66,12 +60,16 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
         )
     }
 
+    if (showHelpDialog) {
+        HelpDialog(onDismiss = { showHelpDialog = false })
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { Text("My Profile", fontWeight = FontWeight.Bold, color = Color.Black) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White),
                 scrollBehavior = scrollBehavior
             )
         },
@@ -90,24 +88,14 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
                 userEmail = user?.email ?: "user@example.com",
                 onEditProfileClick = { showEditDialog = true },
                 onImageClick = { showEditDialog = true },
-                profileImageBase64 = profileImageBase64
+                selectedImageUri = localProfileImageUri
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            ProfileOptionItem(icon = Icons.Default.FavoriteBorder, text = "Favourites")
-            ProfileOptionItem(icon = Icons.Default.Download, text = "Downloads")
-
-            Divider(modifier = Modifier.padding(vertical = 16.dp))
-
-            ProfileOptionItem(icon = Icons.Default.Language, text = "Languages")
-            ProfileOptionItem(icon = Icons.Default.LocationOn, text = "Location")
-
-            Divider(modifier = Modifier.padding(vertical = 16.dp))
-
-            ProfileOptionItem(icon = Icons.Default.DeleteOutline, text = "Clear Cache")
-            ProfileOptionItem(icon = Icons.Default.History, text = "Clear History")
-
+            ProfileOptionItem(icon = Icons.Default.Help, text = "Help") {
+                showHelpDialog = true
+            }
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
             ProfileOptionItem(icon = Icons.AutoMirrored.Filled.ExitToApp, text = "Log Out", showArrow = false) {
@@ -129,10 +117,38 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
 }
 
 @Composable
+fun HelpDialog(onDismiss: () -> Unit) {
+    val teamMembers = listOf(
+        "Manish G Suvarna - manishgsuvarna@email.com - 123-456-7890",
+        "Rakshith - rakshith@email.com - 234-567-8901",
+        "Vighnesh - vighnesh@email.com - 345-678-9012",
+        "Vishwas - vishwas@email.com - 456-789-0123"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Contact Us") },
+        text = {
+            Column {
+                teamMembers.forEach { memberInfo ->
+                    Text(text = memberInfo, modifier = Modifier.padding(bottom = 8.dp))
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
 fun EditProfileDialog(authViewModel: AuthViewModel, onDismiss: () -> Unit) {
     val user = authViewModel.currentUser.value
+    val localProfileImageUri by authViewModel.localProfileImageUri
     var username by remember { mutableStateOf(user?.displayName ?: "") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedImageUri by remember { mutableStateOf(localProfileImageUri) }
     val isLoading by authViewModel.loading
     val errorMessage by authViewModel.errorMessage
 
@@ -197,27 +213,13 @@ fun ProfileHeader(
     userEmail: String,
     onEditProfileClick: () -> Unit,
     onImageClick: () -> Unit,
-    profileImageBase64: String?
+    selectedImageUri: Uri?
 ) {
-
-    val imageBitmap = remember(profileImageBase64) {
-        if (profileImageBase64 != null) {
-            try {
-                val imageBytes = Base64.decode(profileImageBase64, Base64.DEFAULT)
-                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)?.asImageBitmap()
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
-        }
-    }
-    
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Box {
-            if (imageBitmap != null) {
+            if (selectedImageUri != null) {
                 Image(
-                    bitmap = imageBitmap,
+                    painter = rememberAsyncImagePainter(model = selectedImageUri),
                     contentDescription = "Profile Picture",
                     modifier = Modifier
                         .size(100.dp)

@@ -1,51 +1,63 @@
 package com.example.miniproject
 
 import android.app.Application
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
-import android.util.Base64
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
-import com.google.firebase.firestore.FirebaseFirestore
-import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val prefs = application.getSharedPreferences("profile_prefs", Application.MODE_PRIVATE)
     private val TAG = "AuthViewModel"
 
+    // Firebase user state
     val currentUser = mutableStateOf(auth.currentUser)
-    val profileImage = mutableStateOf<String?>(null)
+    // Local profile image state, loaded from permanent local storage
+    val localProfileImageUri = mutableStateOf<Uri?>(loadProfileImageUri())
+    
     val errorMessage = mutableStateOf<String?>(null)
     val loading = mutableStateOf(false)
 
     init {
-        loadProfileImage()
+        auth.addAuthStateListener {
+            currentUser.value = it.currentUser
+            if(it.currentUser != null) {
+                localProfileImageUri.value = loadProfileImageUri()
+            }
+        }
     }
 
-    private fun bitmapToBase64(bitmap: Bitmap): String {
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, byteArrayOutputStream) // Compress to reduce size
-        val byteArray = byteArrayOutputStream.toByteArray()
-        return Base64.encodeToString(byteArray, Base64.DEFAULT)
+    private fun saveProfileImageUri(uri: Uri?) {
+        Log.d(TAG, "Saving URI to SharedPreferences: $uri")
+        prefs.edit().putString("profile_image_uri_${auth.currentUser?.uid}", uri?.toString()).apply()
     }
 
-    private fun loadProfileImage() {
-        val user = auth.currentUser
-        if (user != null) {
-            firestore.collection("users").document(user.uid).get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        profileImage.value = document.getString("photoBase64")
-                    }
-                }
+    private fun loadProfileImageUri(): Uri? {
+        val uid = auth.currentUser?.uid ?: return null
+        val uriString = prefs.getString("profile_image_uri_$uid", null)
+        Log.d(TAG, "Loaded URI from SharedPreferences: $uriString")
+        return uriString?.let { Uri.parse(it) }
+    }
+    
+    private fun copyImageToInternalStorage(uri: Uri): Uri? {
+        return try {
+            val inputStream = getApplication<Application>().contentResolver.openInputStream(uri)
+            val file = File(getApplication<Application>().filesDir, "profile_${auth.currentUser?.uid}.jpg")
+            val outputStream = FileOutputStream(file)
+            inputStream?.copyTo(outputStream)
+            inputStream?.close()
+            outputStream.close()
+            Log.d(TAG, "Copied image to internal storage at: ${Uri.fromFile(file)}")
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error copying image to internal storage", e)
+            null
         }
     }
 
@@ -59,7 +71,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     .setDisplayName(username)
                     .build()
                 user.updateProfile(profileUpdates).addOnCompleteListener {
-                    firestore.collection("users").document(user.uid).set(mapOf("username" to username))
                     currentUser.value = auth.currentUser
                     loading.value = false
                     onSuccess()
@@ -77,7 +88,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         auth.signInWithEmailAndPassword(email, password)
             .addOnSuccessListener {
                 currentUser.value = auth.currentUser
-                loadProfileImage() // Load profile image on login
+                localProfileImageUri.value = loadProfileImageUri()
                 loading.value = false
                 onSuccess()
             }
@@ -98,48 +109,49 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        val userDocRef = firestore.collection("users").document(user.uid)
-        val updates = mutableMapOf<String, Any>("username" to username)
-
+        var permanentImageUri: Uri? = imageUri
         if (imageUri != null && imageUri.scheme == "content") {
-            try {
-                val bitmap = if (Build.VERSION.SDK_INT < 28) {
-                    MediaStore.Images.Media.getBitmap(getApplication<Application>().contentResolver, imageUri)
-                } else {
-                    val source = ImageDecoder.createSource(getApplication<Application>().contentResolver, imageUri)
-                    ImageDecoder.decodeBitmap(source)
-                }
-                val base64Image = bitmapToBase64(bitmap)
-                updates["photoBase64"] = base64Image
-            } catch (e: Exception) {
-                Log.e(TAG, "Error converting image to Base64", e)
-                errorMessage.value = "Failed to process image."
+            permanentImageUri = copyImageToInternalStorage(imageUri)
+            if (permanentImageUri == null) {
+                errorMessage.value = "Failed to save image locally."
                 loading.value = false
                 return
             }
         }
 
-        userDocRef.update(updates)
-            .addOnSuccessListener {
-                val profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(username).build()
-                user.updateProfile(profileUpdates).addOnCompleteListener { 
-                    currentUser.value = auth.currentUser
-                    if (updates.containsKey("photoBase64")) {
-                        profileImage.value = updates["photoBase64"] as String
-                    }
-                    loading.value = false
-                    onSuccess()
+        val profileUpdates = UserProfileChangeRequest.Builder()
+            .setDisplayName(username)
+            .build()
+
+        user.updateProfile(profileUpdates).addOnCompleteListener { updateTask ->
+            if (updateTask.isSuccessful) {
+                Log.d(TAG, "Firebase display name updated successfully.")
+                currentUser.value = auth.currentUser
+                
+                if (imageUri != null && imageUri.scheme == "content") {
+                    saveProfileImageUri(permanentImageUri)
+                    localProfileImageUri.value = permanentImageUri
                 }
-            }
-            .addOnFailureListener { e ->
-                errorMessage.value = "Failed to update profile: ${e.message}"
+
+                loading.value = false
+                onSuccess()
+            } else {
+                val error = "Failed to update profile: ${updateTask.exception?.message}"
+                Log.e(TAG, error)
+                errorMessage.value = error
                 loading.value = false
             }
+        }
     }
 
     fun signOut() {
+        val uid = auth.currentUser?.uid
+        val file = File(getApplication<Application>().filesDir, "profile_$uid.jpg")
+        if (file.exists()) {
+            file.delete()
+        }
+        prefs.edit().remove("profile_image_uri_$uid").apply()
         auth.signOut()
-        currentUser.value = null
-        profileImage.value = null
+        localProfileImageUri.value = null
     }
 }

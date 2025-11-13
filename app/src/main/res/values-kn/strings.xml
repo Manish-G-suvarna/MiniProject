@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">ಮಿನಿ ಪ್ರಾಜೆಕ್ಟ್</string>
+
+    // Profile Screen
+    <string name="my_profile">ನನ್ನ ಪ್ರೊಫೈಲ್</string>
+    <string name="user">ಬಳಕೆದಾರ</string>
+    <string name="user_email">user@example.com</string>
+    <string name="edit_profile">ಪ್ರೊಫೈಲ್ ಸಂಪಾದಿಸಿ</string>
+    <string name="languages">ಭಾಷೆಗಳು</string>
+    <string name="help">ಸಹಾಯ</string>
+    <string name="log_out">ಲಾಗ್ ಔಟ್</string>
+    <string name="app_version">ಅಪ್ಲಿಕೇಶನ್ ಆವೃತ್ತಿ 2.2</string>
+
+    // Edit Profile Dialog
+    <string name="username">ಬಳಕೆದಾರಹೆಸರು</string>
+    <string name="add_change_profile_picture">ಪ್ರೊಫೈಲ್ ಚಿತ್ರವನ್ನು ಸೇರಿಸಿ/ಬದಲಾಯಿಸಿ</string>
+    <string name="save">ಉಳಿಸಿ</string>
+    <string name="cancel">ರದ್ದುಮಾಡಿ</string>
+    <string name="selected_image">ಆಯ್ದ ಚಿತ್ರ</string>
+
+    // Language Dialog
+    <string name="select_language">ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ</string>
+
+    // Home Page
+    <string name="home">ಮುಖಪುಟ</string>
+    <string name="explore">ಅನ್ವೇಷಿಸಿ</string>
+    <string name="detect">ಪತ್ತೆ ಮಾಡಿ</string>
+    <string name="shop">ಅಂಗಡಿ</string>
+    <string name="profile">ಪ್ರೊಫೈಲ್</string>
+    <string name="search">ಹುಡುಕಿ</string>
+</resources>

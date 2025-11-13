@@ -1,3 +1,31 @@
 <resources>
     <string name="app_name">MiniProject</string>
+
+    // Profile Screen
+    <string name="my_profile">My Profile</string>
+    <string name="user">User</string>
+    <string name="user_email">user@example.com</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="languages">Languages</string>
+    <string name="help">Help</string>
+    <string name="log_out">Log Out</string>
+    <string name="app_version">App Version 2.2</string>
+
+    // Edit Profile Dialog
+    <string name="username">Username</string>
+    <string name="add_change_profile_picture">Add/Change Profile Picture</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="selected_image">Selected Image</string>
+
+    // Language Dialog
+    <string name="select_language">Select Language</string>
+
+    // Home Page
+    <string name="home">Home</string>
+    <string name="explore">Explore</string>
+    <string name="detect">Detect</string>
+    <string name="shop">Shop</string>
+    <string name="profile">Profile</string>
+    <string name="search">Search</string>
 </resources>

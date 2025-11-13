@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">मिनी प्रोजेक्ट</string>
+
+    // Profile Screen
+    <string name="my_profile">मेरी प्रोफ़ाइल</string>
+    <string name="user">उपयोगकर्ता</string>
+    <string name="user_email">user@example.com</string>
+    <string name="edit_profile">प्रोफ़ाइल संपादित करें</string>
+    <string name="languages">भाषाएँ</string>
+    <string name="help">मदद</string>
+    <string name="log_out">लॉग आउट</string>
+    <string name="app_version">ऐप संस्करण 2.2</string>
+
+    // Edit Profile Dialog
+    <string name="username">उपयोगकर्ता नाम</string>
+    <string name="add_change_profile_picture">प्रोफ़ाइल चित्र जोड़ें/बदलें</string>
+    <string name="save">सहेजें</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="selected_image">चयनित छवि</string>
+
+    // Language Dialog
+    <string name="select_language">भाषा चुनें</string>
+
+    // Home Page
+    <string name="home">होम</string>
+    <string name="explore">अन्वेषण करें</string>
+    <string name="detect">पता लगाएं</string>
+    <string name="shop">दुकान</string>
+    <string name="profile">प्रोफ़ाइल</string>
+    <string name="search">खोज</string>
+</resources>

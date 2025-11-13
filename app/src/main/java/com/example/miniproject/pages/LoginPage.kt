@@ -72,7 +72,7 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                     label = { Text("Username OR Email") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading // Disable when loading
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -84,7 +84,7 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
-                    enabled = !isLoading // Disable when loading
+                    enabled = !isLoading 
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -101,9 +101,7 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                 Button(
                     onClick = {
                         if (email.isNotEmpty() && password.isNotEmpty()) {
-                            // Call the ViewModel's login function
                             authViewModel.login(email, password) {
-                                // OnSuccess, navigate to homepage
                                 navController.navigate("homepage") {
                                     popUpTo("login") { inclusive = true }
                                 }
