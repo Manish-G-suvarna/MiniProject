@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
+    kotlin("plugin.serialization") version "1.8.0"
 }
 
 android {
@@ -18,6 +19,13 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // keep this — it requires buildFeatures.buildConfig = true below
+        buildConfigField(
+            "String",
+            "WEATHER_API_KEY",
+            "\"${project.properties["WEATHER_API_KEY"] ?: ""}\""
+        )
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -30,6 +38,7 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -37,10 +46,16 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    // <-- ENABLE BUILD CONFIG HERE AND KEEP COMPOSE
     buildFeatures {
         compose = true
+        buildConfig = true
     }
+
+    // If using compose BOM, keep compose options as before (optional)
 }
+
 
 dependencies {
     implementation(libs.androidx.core.ktx)
@@ -59,6 +74,19 @@ dependencies {
     implementation(libs.androidx.compose.runtime.livedata)
     implementation("io.coil-kt:coil-compose:2.5.0")
     implementation(libs.androidx.appcompat)
+
+    // Retrofit + kotlinx-serialization converter (kept correct versions)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+
+    // OkHttp logging (single version)
+    implementation("com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.2")
+
+    // Google Play location
+    implementation("com.google.android.libraries.places:places:3.3.0")
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

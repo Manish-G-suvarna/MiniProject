@@ -1,4 +1,4 @@
-package com.example.miniproject.pages
+package com.example.miniproject.presentation.detect
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

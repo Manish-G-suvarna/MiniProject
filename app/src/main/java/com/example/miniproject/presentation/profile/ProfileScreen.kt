@@ -1,4 +1,4 @@
-package com.example.miniproject.pages
+package com.example.miniproject.presentation.profile
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.miniproject.AuthViewModel
+import com.example.miniproject.core.auth.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,10 +118,10 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel) {
 @Composable
 fun HelpDialog(onDismiss: () -> Unit) {
     val teamMembers = listOf(
-        "Manish G Suvarna - manishgsuvarna@email.com - 123-456-7890",
-        "Rakshith - rakshith@email.com - 234-567-8901",
-        "Vighnesh - vighnesh@email.com - 345-678-9012",
-        "Vishwas - vishwas@email.com - 456-789-0123"
+        "Manish G Suvarna - manishgsuvarna@email.com - 9481853149",
+        "Abhishek Shrivastav  - abhisheksit27@gmail.com - 7892208908",
+        "K J Harshini- kjharshini28@email.com - 8277351798",
+        "Dhanya M Kotian - kotiandhanya18@email.com - 9148545722"
     )
 
     AlertDialog(

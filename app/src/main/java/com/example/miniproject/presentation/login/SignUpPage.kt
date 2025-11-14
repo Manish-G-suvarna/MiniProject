@@ -1,9 +1,9 @@
-package com.example.miniproject.pages
+package com.example.miniproject.presentation.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.* // ktlint-disable no-wildcard-imports
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -18,19 +18,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.miniproject.core.auth.AuthViewModel
 import com.example.miniproject.R
-import com.example.miniproject.AuthViewModel
 
 @Composable
-fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
-
+fun SignupPage(navController: NavController, authViewModel: AuthViewModel) {
+    var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
+    var confirmPassword by remember { mutableStateOf("") }
 
     val errorMessage by authViewModel.errorMessage
     val isLoading by authViewModel.loading
-
 
     val gradientBackground = Brush.verticalGradient(
         listOf(Color(0xFF1ABC9C), Color(0xFFA6E3E9))
@@ -58,7 +57,7 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Login",
+                    text = "Sign Up",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -67,9 +66,20 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Username OR Email") },
+                    label = { Text("Email") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isLoading
@@ -84,31 +94,36 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
-                    enabled = !isLoading 
+                    enabled = !isLoading
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Forgot password?",
-                    color = Color.Gray,
-                    fontSize = 14.sp,
-                    modifier = Modifier.align(Alignment.End)
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm Password") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
                     onClick = {
-                        if (email.isNotEmpty() && password.isNotEmpty()) {
-                            authViewModel.login(email, password) {
+                        authViewModel.errorMessage.value = null // Clear previous error
+                        if (password != confirmPassword) {
+                            authViewModel.errorMessage.value = "Passwords do not match"
+                        } else if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                            authViewModel.signup(username, email, password) {
                                 navController.navigate("homepage") {
-                                    popUpTo("login") { inclusive = true }
+                                    popUpTo("signup") { inclusive = true }
                                 }
                             }
                         } else {
-
-                            authViewModel.errorMessage.value = "Please enter email and password"
+                            authViewModel.errorMessage.value = "Please fill all fields"
                         }
                     },
                     modifier = Modifier
@@ -139,7 +154,7 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                             )
                         } else {
                             Text(
-                                text = "LOGIN",
+                                text = "SIGN UP",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
@@ -150,7 +165,6 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Display error message from the ViewModel
                 errorMessage?.let {
                     Text(text = it, color = Color.Red, fontSize = 14.sp)
                 }
@@ -173,13 +187,14 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "SIGN UP",
+                    text = "Already have an account? LOGIN",
                     fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
+                    color = Color.Black,
                     modifier = Modifier.clickable {
-
-                        authViewModel.errorMessage.value = null
-                        navController.navigate("signup")
+                        authViewModel.errorMessage.value = null // Clear error
+                        navController.navigate("login") {
+                            popUpTo("signup") { inclusive = true }
+                        }
                     }
                 )
             }
@@ -188,13 +203,11 @@ fun LoginPage(navController: NavController, authViewModel: AuthViewModel) {
 }
 
 @Composable
-fun SocialIcon(icon: Int, onClick: () -> Unit = {}) {
+fun SocialIcon(icon: Int) {
     Card(
         shape = CircleShape,
         elevation = CardDefaults.cardElevation(6.dp),
-        modifier = Modifier
-            .size(50.dp)
-            .clickable { onClick() }
+        modifier = Modifier.size(50.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Image(

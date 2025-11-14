@@ -1,4 +1,4 @@
-package com.example.miniproject
+package com.example.miniproject.core.navigation
 
 
 import androidx.compose.runtime.Composable
@@ -6,9 +6,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.miniproject.pages.LoginPage
-import com.example.miniproject.pages.SignupPage
-import com.example.miniproject.pages.HomePage
+import com.example.miniproject.core.auth.AuthViewModel
+import com.example.miniproject.presentation.login.LoginPage
+import com.example.miniproject.presentation.login.SignupPage
+import com.example.miniproject.presentation.home.HomePage
 
 
 @Composable

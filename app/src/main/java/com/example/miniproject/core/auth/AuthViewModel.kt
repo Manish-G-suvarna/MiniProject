@@ -1,4 +1,4 @@
-package com.example.miniproject
+package com.example.miniproject.core.auth
 
 import android.app.Application
 import android.net.Uri
@@ -20,7 +20,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val currentUser = mutableStateOf(auth.currentUser)
     // Local profile image state, loaded from permanent local storage
     val localProfileImageUri = mutableStateOf<Uri?>(loadProfileImageUri())
-    
+
     val errorMessage = mutableStateOf<String?>(null)
     val loading = mutableStateOf(false)
 
@@ -44,11 +44,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         Log.d(TAG, "Loaded URI from SharedPreferences: $uriString")
         return uriString?.let { Uri.parse(it) }
     }
-    
+
     private fun copyImageToInternalStorage(uri: Uri): Uri? {
         return try {
             val inputStream = getApplication<Application>().contentResolver.openInputStream(uri)
-            val file = File(getApplication<Application>().filesDir, "profile_${auth.currentUser?.uid}.jpg")
+            val file =
+                File(getApplication<Application>().filesDir, "profile_${auth.currentUser?.uid}.jpg")
             val outputStream = FileOutputStream(file)
             inputStream?.copyTo(outputStream)
             inputStream?.close()
@@ -127,7 +128,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             if (updateTask.isSuccessful) {
                 Log.d(TAG, "Firebase display name updated successfully.")
                 currentUser.value = auth.currentUser
-                
+
                 if (imageUri != null && imageUri.scheme == "content") {
                     saveProfileImageUri(permanentImageUri)
                     localProfileImageUri.value = permanentImageUri
