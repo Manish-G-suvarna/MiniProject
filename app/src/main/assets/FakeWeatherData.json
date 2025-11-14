@@ -1,0 +1,101 @@
+
+{
+  "location": {
+    "name": "Dakshina Kannada"
+  },
+  "current": {
+    "temp_c": 28.0,
+    "condition": {
+      "text": "Partly Cloudy"
+    },
+    "is_day": 1
+  },
+  "forecast": {
+    "forecastday": [
+      {
+        "date_epoch": 1678848000,
+        "day": {
+          "maxtemp_c": 32.0,
+          "mintemp_c": 24.0,
+          "condition": {
+            "text": "Partly cloudy"
+          }
+        },
+        "hour": [
+          {"time_epoch": 1678886400, "temp_c": 29.0, "condition": {"text": "Partly cloudy"}, "is_day": 1},
+          {"time_epoch": 1678890000, "temp_c": 31.0, "condition": {"text": "Partly cloudy"}, "is_day": 1},
+          {"time_epoch": 1678893600, "temp_c": 32.0, "condition": {"text": "Partly cloudy"}, "is_day": 1},
+          {"time_epoch": 1678897200, "temp_c": 32.0, "condition": {"text": "Partly cloudy"}, "is_day": 1},
+          {"time_epoch": 1678900800, "temp_c": 32.0, "condition": {"text": "Partly cloudy"}, "is_day": 1},
+          {"time_epoch": 1678904400, "temp_c": 31.0, "condition": {"text": "Partly cloudy"}, "is_day": 1}
+        ]
+      },
+      {
+        "date_epoch": 1678934400,
+        "day": {
+          "maxtemp_c": 33.0,
+          "mintemp_c": 25.0,
+          "condition": {
+            "text": "Sunny"
+          }
+        },
+        "hour": []
+      },
+      {
+        "date_epoch": 1679020800,
+        "day": {
+          "maxtemp_c": 31.0,
+          "mintemp_c": 24.0,
+          "condition": {
+            "text": "Patchy rain possible"
+          }
+        },
+        "hour": []
+      },
+      {
+        "date_epoch": 1679107200,
+        "day": {
+          "maxtemp_c": 30.0,
+          "mintemp_c": 23.0,
+          "condition": {
+            "text": "Cloudy"
+          }
+        },
+        "hour": []
+      },
+      {
+        "date_epoch": 1679193600,
+        "day": {
+          "maxtemp_c": 34.0,
+          "mintemp_c": 26.0,
+          "condition": {
+            "text": "Sunny"
+          }
+        },
+        "hour": []
+      },
+      {
+        "date_epoch": 1679280000,
+        "day": {
+          "maxtemp_c": 32.0,
+          "mintemp_c": 25.0,
+          "condition": {
+            "text": "Partly cloudy"
+          }
+        },
+        "hour": []
+      },
+      {
+        "date_epoch": 1679366400,
+        "day": {
+          "maxtemp_c": 31.0,
+          "mintemp_c": 24.0,
+          "condition": {
+            "text": "Patchy rain possible"
+          }
+        },
+        "hour": []
+      }
+    ]
+  }
+}
