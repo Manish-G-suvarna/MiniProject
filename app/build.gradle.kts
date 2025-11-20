@@ -74,6 +74,7 @@ dependencies {
 
     // Coil Image Loader
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("androidx.compose.material:material")
 
     // --- FIREBASE (Use ONE BOM only!) ---
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))

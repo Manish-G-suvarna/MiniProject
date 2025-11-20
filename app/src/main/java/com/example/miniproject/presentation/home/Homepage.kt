@@ -1,7 +1,10 @@
 package com.example.miniproject.presentation.home
 
 import com.example.miniproject.R
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -14,6 +17,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -34,6 +39,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +74,7 @@ import com.example.miniproject.presentation.profile.ProfileScreen
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import kotlinx.coroutines.launch
 
 
 // --- SIMPLE, BULLETPROOF DATA CLASSES (NO SERIALIZATION) ---
@@ -1008,19 +1015,74 @@ fun FancyCategoryCard(
     isLoading: Boolean = false
 ) {
     val gradient = getCategoryGradient(name)
-    val scale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+    val bounceScale = remember { Animatable(1f) }
+    var isAnimating by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = LinearOutSlowInEasing
         )
     )
+    val tilt by animateFloatAsState(
+        targetValue = if (isPressed) -4f else 0f,
+        animationSpec = tween(
+            durationMillis = 220,
+            easing = FastOutSlowInEasing
+        )
+    )
+    val scope = rememberCoroutineScope()
+    val cardScale = bounceScale.value * pressScale
     Card(
         modifier = Modifier
             .width(170.dp)
             .padding(8.dp)
-            .graphicsLayer(scaleX = scale, scaleY = scale)
-            .clickable { if (!isLoading) navController.navigate("crop_list/$name") },
+            .graphicsLayer(
+                scaleX = cardScale,
+                scaleY = cardScale,
+                rotationY = tilt
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                enabled = !isLoading && !isAnimating
+            ) {
+                if (isLoading) return@clickable
+                scope.launch {
+                    if (isAnimating) return@launch
+                    isAnimating = true
+                    try {
+                        bounceScale.animateTo(
+                            targetValue = 0.92f,
+                            animationSpec = tween(
+                                durationMillis = 110,
+                                easing = LinearOutSlowInEasing
+                            )
+                        )
+                        bounceScale.animateTo(
+                            targetValue = 1.05f,
+                            animationSpec = tween(
+                                durationMillis = 170,
+                                easing = FastOutSlowInEasing
+                            )
+                        )
+                        bounceScale.animateTo(
+                            targetValue = 1f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        )
+                        navController.navigate("crop_list/$name")
+                    } finally {
+                        if (bounceScale.isRunning.not()) {
+                            bounceScale.snapTo(1f)
+                        }
+                        isAnimating = false
+                    }
+                }
+            },
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
