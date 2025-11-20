@@ -1,10 +1,13 @@
 package com.example.miniproject.presentation.home
 
 import com.example.miniproject.R
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -39,10 +42,11 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.*
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
@@ -51,6 +55,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -462,9 +469,24 @@ fun HomeScreenContent(
 
                     Spacer(Modifier.height(16.dp))
 
-                    // Enhanced Search Bar
-                    ImprovedSearchBar(
+                    AnimatedVisibility(visible = isLoading) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = Color.White,
+                            trackColor = Color.White.copy(alpha = 0.2f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // Animated Search Bar
+                    AnimatedSearchBar(
                         query = searchQuery,
+                        isSearching = isSearching,
+                        isLoading = isLoading,
                         onQueryChange = {
                             searchQuery = it
                             isSearching = it.isNotEmpty()
@@ -524,7 +546,8 @@ fun HomeScreenContent(
 
                     PlantGrid(
                         plants = categoryData.plants.map { it.diffName },
-                        navController = navController
+                        navController = navController,
+                        isLoading = isLoading
                     )
                 }
             }
@@ -532,63 +555,226 @@ fun HomeScreenContent(
     }
 }
 @Composable
-fun ImprovedSearchBar(
+fun AnimatedSearchBar(
     query: String,
+    isSearching: Boolean,
+    isLoading: Boolean,
     onQueryChange: (String) -> Unit,
-    onClear: () -> Unit
+    onClear: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(Color.White),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = Color(0xFF427EB3),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(Modifier.width(12.dp))
+    val focusRequester = remember { FocusRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isFocused) Color.White else Color.White.copy(alpha = 0.95f),
+        label = "search-background"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isFocused) Color.White else Color.White.copy(alpha = 0.4f),
+        label = "search-border"
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (isFocused) 12.dp else 4.dp,
+        label = "search-elevation"
+    )
+    val placeholderAlpha by animateFloatAsState(
+        targetValue = if (isFocused) 0.9f else 0.6f,
+        label = "placeholder-alpha"
+    )
+    val quickSuggestions = remember {
+        listOf("Organic seeds", "Smart irrigation", "Soil testing", "Weather today")
+    }
 
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                textStyle = TextStyle(
-                    fontSize = 16.sp,
-                    color = Color.Black
-                ),
-                decorationBox = { innerTextField ->
-                    if (query.isEmpty()) {
-                        Text(
-                            "Search crops, categories...",
-                            color = Color.Gray,
-                            fontSize = 16.sp
+    Column {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation, RoundedCornerShape(20.dp), clip = false)
+                .border(1.dp, borderColor, RoundedCornerShape(20.dp)),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(backgroundColor),
+            elevation = CardDefaults.cardElevation(0.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .padding(horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = Color(0xFF2C6AE3),
+                    modifier = Modifier.size(26.dp)
+                )
+
+                Spacer(Modifier.width(12.dp))
+
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { isFocused = it.isFocused },
+                    textStyle = TextStyle(
+                        fontSize = 16.sp,
+                        color = Color(0xFF1E1E1E)
+                    ),
+                    singleLine = true,
+                    decorationBox = { innerTextField ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (query.isEmpty()) {
+                                Text(
+                                    text = "Search crops, categories...",
+                                    color = Color(0xFF6D7B8C).copy(alpha = placeholderAlpha),
+                                    fontSize = 16.sp,
+                                    modifier = Modifier.alpha(placeholderAlpha)
+                                )
+                            }
+                            innerTextField()
+                        }
+                    }
+                )
+
+                Spacer(Modifier.width(8.dp))
+
+                SearchLoadingDots(
+                    visible = isSearching && isLoading
+                )
+
+                AnimatedVisibility(visible = query.isNotEmpty()) {
+                    IconButton(onClick = onClear) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear search",
+                            tint = Color(0xFF6D7B8C)
                         )
                     }
-                    innerTextField()
-                },
-                singleLine = true
-            )
+                }
 
-            if (query.isNotEmpty()) {
-                IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
+                AnimatedVisibility(visible = query.isEmpty()) {
+                    IconButton(onClick = { /* TODO: voice search */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Voice search",
+                            tint = Color(0xFF2C6AE3)
+                        )
+                    }
+                }
+
+                IconButton(onClick = { /* TODO: open filters */ }) {
                     Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Clear",
-                        tint = Color.Gray
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = "Filters",
+                        tint = Color(0xFF2C6AE3)
                     )
                 }
             }
+        }
+
+        AnimatedVisibility(visible = query.isEmpty()) {
+            QuickSearchSuggestions(
+                suggestions = quickSuggestions,
+                onSuggestionClick = { suggestion ->
+                    onQueryChange(suggestion)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun SearchLoadingDots(visible: Boolean) {
+    AnimatedVisibility(visible = visible) {
+        val transition = rememberInfiniteTransition(label = "search-dots")
+        val alpha1 by transition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 600, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dot1"
+        )
+        val alpha2 by transition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 600, delayMillis = 120, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dot2"
+        )
+        val alpha3 by transition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 600, delayMillis = 240, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dot3"
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf(alpha1, alpha2, alpha3).forEach { alpha ->
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF2C6AE3).copy(alpha = alpha))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickSearchSuggestions(
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(suggestions) { suggestion ->
+            SuggestionChip(
+                text = suggestion,
+                onClick = { onSuggestionClick(suggestion) }
+            )
+        }
+    }
+}
+
+@Composable
+fun SuggestionChip(
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier,
+        shape = RoundedCornerShape(50),
+        shadowElevation = 4.dp,
+        color = Color.White
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable { onClick() }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                color = Color(0xFF1F3A5C),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -918,8 +1104,8 @@ fun CategoryCard(category: dataPlants,navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
                     .padding(16.dp)
                     .clickable {
-                navController.navigate("category_screen")
-            },
+                        navController.navigate("category_screen")
+                    },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
 
@@ -952,7 +1138,15 @@ fun CategoryCard(category: dataPlants,navController: NavController) {
 
 
 @Composable
-fun PlantGrid(plants: List<String>, navController: NavController) {
+fun PlantGrid(
+    plants: List<String>,
+    navController: NavController,
+    isLoading: Boolean = false
+) {
+    if (isLoading) {
+        PlantGridSkeleton()
+        return
+    }
 
     val subtitles = mapOf(
         "Cereal" to "Wheat, Rice",
@@ -976,27 +1170,26 @@ fun PlantGrid(plants: List<String>, navController: NavController) {
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         plants.chunked(2).forEach { row ->
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
 
-                // card 1
                 FancyCategoryCard(
                     name = row[0],
                     subtitle = subtitles[row[0]] ?: "",
                     imageRes = icons[row[0]]!!,
-                    navController = navController
+                    navController = navController,
+                    isLoading = isLoading
                 )
 
-                // card 2 (if only 1 item in last row)
                 if (row.size > 1) {
                     FancyCategoryCard(
                         name = row[1],
                         subtitle = subtitles[row[1]] ?: "",
                         imageRes = icons[row[1]]!!,
-                        navController = navController
+                        navController = navController,
+                        isLoading = isLoading
                     )
                 } else {
                     Spacer(modifier = Modifier.width(170.dp))
@@ -1004,6 +1197,98 @@ fun PlantGrid(plants: List<String>, navController: NavController) {
             }
         }
     }
+}
+
+@Composable
+fun PlantGridSkeleton(rows: Int = 2) {
+    val shimmerBrush = rememberShimmerBrush()
+    Column(
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        repeat(rows) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                repeat(2) {
+                    SkeletonCategoryCard(brush = shimmerBrush)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SkeletonCategoryCard(brush: Brush) {
+    Card(
+        modifier = Modifier
+            .width(170.dp)
+            .height(200.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(90.dp)
+                    .clip(CircleShape)
+                    .background(brush)
+            )
+            Spacer(Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .height(18.dp)
+                    .fillMaxWidth(0.9f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(brush)
+            )
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .height(14.dp)
+                    .fillMaxWidth(0.6f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(brush)
+            )
+            Spacer(Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(brush)
+            )
+        }
+    }
+}
+
+@Composable
+fun rememberShimmerBrush(): Brush {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer-shift"
+    )
+    return Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFE5E5E5),
+            Color(0xFFF5F5F5),
+            Color(0xFFE5E5E5)
+        ),
+        start = Offset(offset - 200f, 0f),
+        end = Offset(offset, 200f)
+    )
 }
 
 @Composable
