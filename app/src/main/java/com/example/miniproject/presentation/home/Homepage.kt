@@ -78,6 +78,8 @@ import coil.compose.AsyncImage
 import com.example.miniproject.core.auth.AuthViewModel
 import com.example.miniproject.core.data.model.Crop
 import com.example.miniproject.presentation.profile.ProfileScreen
+import com.example.miniproject.presentation.shop.ShopScreen
+import com.example.miniproject.presentation.finance.FinanceScreen
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
@@ -158,7 +160,12 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
             }
 
             composable("TravelExplore_tab") { /* TODO */ }
-            composable("detect_tab") { /* TODO */ }
+            composable("shop_tab") {
+                ShopScreen(bottomNav, authViewModel)
+            }
+            composable("finance_tab") {
+                FinanceScreen(bottomNav, authViewModel)
+            }
             composable("profile_tab") {
                 ProfileScreen(mainNavController, authViewModel)
             }
@@ -239,15 +246,30 @@ fun BottomNavBar(navController: NavController) {
             )
 
             BottomNavItem(
-                selectedIcon = Icons.Filled.CameraAlt,
-                unselectedIcon = Icons.Outlined.CameraAlt,
-                label = "Detect",
-                route = "detect_tab",
+                selectedIcon = Icons.Filled.ShoppingBag,
+                unselectedIcon = Icons.Outlined.ShoppingBag,
+                label = "Shop",
+                route = "shop_tab",
                 current = current,
                 navController = navController,
                 onReselect = {
-                    navController.navigate("detect_tab") {
-                        popUpTo("detect_tab") { inclusive = true }
+                    navController.navigate("shop_tab") {
+                        popUpTo("shop_tab") { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
+
+            BottomNavItem(
+                selectedIcon = Icons.Filled.AccountBalance,
+                unselectedIcon = Icons.Outlined.AccountBalance,
+                label = "Finance",
+                route = "finance_tab",
+                current = current,
+                navController = navController,
+                onReselect = {
+                    navController.navigate("finance_tab") {
+                        popUpTo("finance_tab") { inclusive = true }
                         launchSingleTop = true
                     }
                 }
