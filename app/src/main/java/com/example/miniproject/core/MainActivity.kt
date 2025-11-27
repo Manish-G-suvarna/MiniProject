@@ -8,7 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import com.example.miniproject.core.data.repository.FarmRepository
+import com.example.miniproject.data.repository.FarmRepository
 import com.example.miniproject.core.navigation.MyAppNavigation
 import com.example.miniproject.ui.theme.MiniProjectTheme
 import com.google.firebase.FirebaseApp

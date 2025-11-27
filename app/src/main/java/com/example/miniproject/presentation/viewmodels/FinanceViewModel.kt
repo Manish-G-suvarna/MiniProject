@@ -2,7 +2,7 @@ package com.example.miniproject.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.miniproject.core.data.repository.FarmRepository
+import com.example.miniproject.data.repository.FarmRepository
 import com.example.miniproject.data.model.ExpenseEntry
 import com.example.miniproject.data.model.ProfitSummary
 import com.example.miniproject.data.model.SaleEntry

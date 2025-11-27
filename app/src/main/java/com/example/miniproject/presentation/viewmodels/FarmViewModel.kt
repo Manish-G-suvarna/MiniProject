@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.miniproject.core.data.model.Category
 import com.example.miniproject.core.data.model.Crop
-import com.example.miniproject.core.data.repository.FarmRepository
+import com.example.miniproject.data.repository.FarmRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

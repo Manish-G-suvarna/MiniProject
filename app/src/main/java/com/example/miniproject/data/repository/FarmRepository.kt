@@ -1,4 +1,4 @@
-package com.example.miniproject.core.data.repository
+package com.example.miniproject.data.repository
 
 import android.util.Log
 import com.example.miniproject.core.data.model.Category
@@ -30,7 +30,7 @@ class FarmRepository {
         Log.d(TAG, "========== STARTING getAllCategories (Realtime DB) ==========")
 
         val categoriesRef = database.getReference("categories")
-        Log.d(TAG, "Reference path: ${categoriesRef.path}")
+        Log.d(TAG, "Reference path: ${categoriesRef.toString()}")
 
         categoriesRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
