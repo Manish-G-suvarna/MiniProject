@@ -1,3 +1,28 @@
+package com.example.miniproject.core.data.repository
+
+import android.util.Log
+import com.example.miniproject.core.data.model.Category
+import com.example.miniproject.core.data.model.Crop
+import com.example.miniproject.core.data.model.Disease
+import com.example.miniproject.data.model.Product
+import com.example.miniproject.data.model.ExpenseEntry
+import com.example.miniproject.data.model.SaleEntry
+import com.example.miniproject.data.model.Order
+import com.example.miniproject.data.model.ProfitSummary
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+class FarmRepository {
+    // Change from Firestore to Realtime Database
+    private val database = FirebaseDatabase.getInstance()
+    private val TAG = "FarmRepository"
+    
+    /**
      * Fetches all categories from Firebase Realtime Database
      * Path: /categories/[0,1,2,3,4,5]
      */
@@ -185,6 +210,7 @@
                     continuation.resumeWithException(error.toException())
                 }
             })
+        }
 
     // =============== SHOP/PRODUCTS METHODS ===============
     
@@ -449,5 +475,4 @@
             }
         })
     }
-        }
 }
