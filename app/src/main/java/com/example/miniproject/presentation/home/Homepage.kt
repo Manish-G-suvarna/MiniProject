@@ -161,7 +161,9 @@ fun HomePage(mainNavController: NavController, authViewModel: AuthViewModel) {
                 )
             }
 
-            composable("TravelExplore_tab") { /* TODO */ }
+            composable("TravelExplore_tab") {
+                ExploreScreenContent(bottomNav, farmViewModel)
+            }
             composable("shop_tab") {
                 ShopScreen(bottomNav, authViewModel)
             }
@@ -1504,6 +1506,194 @@ fun CategoryScreen(
     }
 }
 
+@Composable
+fun ExploreScreenContent(
+    navController: NavController,
+    farmViewModel: FarmViewModel
+) {
+    val categories by farmViewModel.categories.collectAsState()
+    val isLoading by farmViewModel.isLoading.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        farmViewModel.loadCategories()
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+    ) {
+        // Header with Gradient
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFF427EB3), Color(0xFF5B9BD5))
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Explore",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+        
+        // Content Section
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFF427EB3))
+            }
+        } else if (categories.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Default.SearchOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.Gray.copy(alpha = 0.5f)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "No categories found",
+                        color = Color.Gray,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Browse All Categories",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2C3E50)
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                
+                // Categories Grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.height((categories.size / 2 + 1) * 230.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    userScrollEnabled = false
+                ) {
+                    items(categories) { category ->
+                        ExploreCategoryCard(
+                            categoryName = category.name,
+                            cropCount = category.crops.size,
+                            onClick = { navController.navigate("crop_list/${category.name}") }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExploreCategoryCard(
+    categoryName: String,
+    cropCount: Int,
+    onClick: () -> Unit
+) {
+    val gradient = getCategoryGradient(categoryName)
+    val icons = mapOf(
+        "Cereal" to R.drawable.cereal,
+        "Pulse" to R.drawable.pulse,
+        "Oilseed" to R.drawable.oilseed,
+        "Fiber" to R.drawable.fiber,
+        "Sugar" to R.drawable.sugar,
+        "Cash" to R.drawable.cash
+    )
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(gradient)
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                icons[categoryName]?.let { iconRes ->
+                    Image(
+                        painter = painterResource(id = iconRes),
+                        contentDescription = categoryName,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.3f))
+                            .padding(12.dp)
+                    )
+                }
+                
+                Spacer(Modifier.height(12.dp))
+                
+                Text(
+                    text = categoryName,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                Text(
+                    text = "$cropCount crops",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+            
+            // Decorative corner icon
+            Icon(
+                Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp)
+                    .size(24.dp)
+            )
+        }
+    }
+}
+
+
+
 
 @Composable
 fun CropListScreen(
@@ -1680,82 +1870,434 @@ fun CropDetailsScreen(
     viewModel: FarmViewModel
 ) {
     val data by viewModel.cropDetails.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()   // <-- NEW
-
+    val isLoading by viewModel.isLoading.collectAsState()
+    var selectedTab by remember { mutableStateOf(0) }
+    
     // fetch when crop changes
     LaunchedEffect(crop) {
         viewModel.loadCropDetails(category, crop)
     }
-
+    
     // --- LOADING SCREEN ---
     if (isLoading) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = Color(0xFF427EB3))
         }
         return
     }
-
+    
     // --- FAILED FETCH ---
     if (data == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("Failed to load crop details", color = Color.Red)
+            Column(horizontalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = Color.Red.copy(alpha = 0.6f)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text("Failed to load crop details", color = Color.Red, fontSize = 16.sp)
+            }
         }
         return
     }
-
-    // --- YOUR ORIGINAL SCREEN (UNCHANGED) ---
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .background(Color(0xFFF8F9FA))
     ) {
-
-        Icon(
-            Icons.Default.KeyboardArrowLeft,
-            contentDescription = "Back",
-            modifier = Modifier
-                .size(40.dp)
-                .clickable { navController.popBackStack() }
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        AsyncImage(
-            model = data!!.picURL,
-            contentDescription = data!!.name,
+        // Hero Section with Image and Gradient Overlay
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            contentScale = ContentScale.Crop
+                .height(300.dp)
+        ) {
+            AsyncImage(
+                model = data!!.picURL,
+                contentDescription = data!!.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            
+            // Gradient Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.6f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.8f)
+                            )
+                        )
+                    )
+            )
+            
+            // Back Button
+            Card(
+                shape = CircleShape,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .size(48.dp)
+                    .align(Alignment.TopStart)
+                    .clickable { navController.popBackStack() },
+                colors = CardDefaults.cardColors(Color.White.copy(alpha = 0.9f)),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.KeyboardArrowLeft,
+                        contentDescription = "Back",
+                        tint = Color.Black,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            
+            // Crop Name and Category
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = data!!.name,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Surface(
+                    color = Color.White.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(
+                        text = category,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        fontSize = 14.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+        
+        // Tab Row
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.White,
+            contentColor = Color(0xFF427EB3)
+        ) {
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("About") },
+                icon = { Icon(Icons.Default.Info, null, modifier = Modifier.size(20.dp)) }
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("Diseases") },
+                icon = { Icon(Icons.Default.BugReport, null, modifier = Modifier.size(20.dp)) }
+            )
+            Tab(
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+                text = { Text("Care") },
+                icon = { Icon(Icons.Default.Eco, null, modifier = Modifier.size(20.dp)) }
+            )
+        }
+        
+        // Tab Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            when (selectedTab) {
+                0 -> AboutTabContent(data!!)
+                1 -> DiseasesTabContent(data!!.diseases)
+                2 -> CareTabContent()
+            }
+        }
+    }
+}
+
+@Composable
+fun AboutTabContent(crop: Crop) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "About ${crop.name}",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2C3E50)
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Text(
+                text = crop.about,
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                color = Color(0xFF5A5A5A)
+            )
+            
+            if (crop.regions.isNotEmpty()) {
+                Spacer(Modifier.height(24.dp))
+                
+                Text(
+                    text = "Growing Regions",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2C3E50)
+                )
+                
+                Spacer(Modifier.height(12.dp))
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.height(40.dp),
+                    userScrollEnabled = false
+                ) {
+                    items(crop.regions.size) { index ->
+                        Surface(
+                            color = Color(0xFF427EB3).copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(20.dp),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                Color(0xFF427EB3).copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Text(
+                                text = crop.regions[index],
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                fontSize = 14.sp,
+                                color = Color(0xFF427EB3),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DiseasesTabContent(diseases: List<com.example.miniproject.core.data.model.Disease>) {
+    if (diseases.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = Color(0xFF4CAF50).copy(alpha = 0.6f)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "No common diseases recorded",
+                    color = Color.Gray,
+                    fontSize = 16.sp
+                )
+            }
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            diseases.forEach { disease ->
+                DiseaseCard(disease)
+            }
+        }
+    }
+}
+
+@Composable
+fun DiseaseCard(disease: com.example.miniproject.core.data.model.Disease) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = Color(0xFFFF5722).copy(alpha = 0.1f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.BugReport,
+                                null,
+                                tint = Color(0xFFFF5722),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(Modifier.width(12.dp))
+                    
+                    Text(
+                        text = disease.name,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2C3E50)
+                    )
+                }
+                
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = Color.Gray
+                )
+            }
+            
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    // Symptoms
+                    InfoSection(
+                        title = "Symptoms",
+                        content = disease.symptoms,
+                        icon = Icons.Default.Visibility
+                    )
+                    
+                    Spacer(Modifier.height(12.dp))
+                    
+                    // Cause
+                    InfoSection(
+                        title = "Cause",
+                        content = disease.cause,
+                        icon = Icons.Default.Science
+                    )
+                    
+                    Spacer(Modifier.height(12.dp))
+                    
+                    // Solutions
+                    Text(
+                        text = "Solutions",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2C3E50)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    disease.solution.forEach { solution ->
+                        Row(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(20.dp).padding(top = 2.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = solution,
+                                fontSize = 14.sp,
+                                color = Color(0xFF5A5A5A),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoSection(title: String, content: String, icon: ImageVector) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                icon,
+                null,
+                tint = Color(0xFF427EB3),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2C3E50)
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = content,
+            fontSize = 14.sp,
+            color = Color(0xFF5A5A5A),
+            lineHeight = 20.sp
         )
+    }
+}
 
-        Spacer(Modifier.height(20.dp))
-
-        Text(data!!.name, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-        Text("Category: $category", fontSize = 16.sp, color = Color.Gray)
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(data!!.about, fontSize = 16.sp)
-
-        Spacer(Modifier.height(20.dp))
-
-        Text("Diseases", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-
-        data!!.diseases.forEach { disease ->
-            Spacer(Modifier.height(12.dp))
-            Text("• ${disease.name}", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text("Symptoms: ${disease.symptoms}")
-            Text("Cause: ${disease.cause}")
-            Text("Solutions:\n- ${disease.solution.joinToString("\n- ")}")
+@Composable
+fun CareTabContent() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                Icons.Default.Eco,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = Color(0xFF4CAF50).copy(alpha = 0.6f)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Care Tips",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2C3E50)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Detailed care instructions coming soon!",
+                color = Color.Gray,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
